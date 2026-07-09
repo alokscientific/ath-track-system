@@ -88,7 +88,7 @@ head_col1, head_col2 = st.columns([0.85, 0.15]) # Screen ko 2 hisso me baant diy
 
 with head_col1:
     st.title("ATH Track system")
-    st.markdown("**All Time High Tracking System** 🚀")
+    st.markdown("**All Time High Tracking System** 📈 ")
 
 with head_col2:
     st.write("") # Button ko thoda niche align karne ke liye
@@ -107,7 +107,7 @@ with head_col2:
     except FileNotFoundError:
         st.caption("⚠️ PDF not uploaded yet")
 
-st.info("Disclaimer: EDUCATIONAL PURPOSES ONLY. I am NOT a SEBI Registered Analyst.")
+st.info("We are not SEBI Registered Advisors. This website is purely for training and educational purposes.")
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1qKxpIIoGd4skNllbua6U0AeeFt-WQjeYPMvBzS5_Qn4/export?format=csv"
 
@@ -212,7 +212,7 @@ if not df.empty:
     tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Trade History"])
 
     with tab1:
-        st.markdown("### Live & Ongoing Trades")
+        st.markdown("### Live scan and Trades")
         
         entered_df = df[df['status'].str.contains("ENTERED", na=False)]
         waiting_df = df[df['status'].str.contains("WAITING", na=False)]
@@ -221,7 +221,7 @@ if not df.empty:
             st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
         else:
             if not entered_df.empty:
-                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>🟢 Active Positions (Entered)</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>🟢 Active Positions [Entered]</h4>", unsafe_allow_html=True)
                 draw_cards(entered_df)
                 
             if not entered_df.empty and not waiting_df.empty:
