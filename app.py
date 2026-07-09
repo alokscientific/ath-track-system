@@ -51,7 +51,7 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
     .ticker-link {
-        color: #FFD700 !important; /* Gold color for news headlines */
+        color: #FFD700 !important;
         text-decoration: none;
         font-weight: 500;
     }
@@ -76,10 +76,10 @@ def load_data():
         return pd.DataFrame()
 
 # --- LIVE NEWS FETCHING FUNCTION ---
-@st.cache_data(ttl=600) # 10 minute tak news cache rakhega taaki app slow na ho
-def get_live_news(symbols):
+@st.cache_data(ttl=600)
+def get_live_news(symbols_tuple):
     news_items = []
-    for sym in symbols:
+    for sym in symbols_tuple:
         try:
             ticker = yf.Ticker(f"{sym}.NS")
             news = ticker.news
@@ -88,7 +88,7 @@ def get_live_news(symbols):
                 link = news[0]['link']
                 news_items.append(f"📰 <b>{sym}</b>: <a class='ticker-link' href='{link}' target='_blank'>{headline}</a>")
         except Exception:
-            pass # Agar news na mile toh skip kardo
+            pass
     return news_items
 
 df = load_data()
@@ -101,7 +101,8 @@ def safe_float(val):
 
 # --- HORIZONTAL RUNNING LIVE NEWS TICKER ---
 if not df.empty:
-    unique_symbols = df['symbol'].dropna().unique()
+    # Yahan magic fix hai: '.unique()' ke baad 'tuple()' laga diya taaki Streamlit khush rahe
+    unique_symbols = tuple(df['symbol'].dropna().unique())
     news_list = get_live_news(unique_symbols)
     
     if news_list:
@@ -122,10 +123,8 @@ def draw_cards(dataframe):
                 ath = safe_float(row['ath'])
                 day_change_str = str(row['day_change'])
                 
-                # % Below ATH Logic
                 below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
                 
-                # Badge & Icon Logic
                 if "WAITING" in status:
                     badge_class, display_status = "badge-waiting", "🟡 WAITING"
                 elif "ENTERED" in status:
@@ -135,19 +134,16 @@ def draw_cards(dataframe):
                 else:
                     badge_class, display_status = "badge-tgt", "🎯 TARGET HIT"
                 
-                # Day Change Color Logic
                 if "-" in day_change_str:
-                    change_color = "#FF5252" # Red
+                    change_color = "#FF5252"
                 elif "+" in day_change_str:
-                    change_color = "#00E676" # Green
+                    change_color = "#00E676"
                 else:
-                    change_color = "#FFFFFF" # White
+                    change_color = "#FFFFFF"
                 
-                # 1. Card Header, Badge & Company Name (White)
                 st.markdown(f"#### {sym} <span class='badge {badge_class}'>{display_status}</span>", unsafe_allow_html=True)
                 st.markdown(f"<div style='color: #FFFFFF; font-size: 12px; margin-top: -12px; margin-bottom: 12px; opacity: 0.8;'>{comp_name}</div>", unsafe_allow_html=True)
                 
-                # 2. Beautiful Buttons (Chart & Data)
                 chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
                 screener = f"https://www.screener.in/company/{sym}/"
                 
@@ -158,7 +154,6 @@ def draw_cards(dataframe):
                 
                 st.divider()
                 
-                # 3. Clean & Explicit Metrics (Colored LTP Change)
                 st.markdown(f"**LTP:** ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span>", unsafe_allow_html=True)
                 
                 if "WAITING" in status:
@@ -172,7 +167,6 @@ def draw_cards(dataframe):
                     st.markdown(f"**Target:** ₹{safe_float(row['target_price'])}")
                     st.markdown(f"**SL:** ₹{safe_float(row['sl_price'])}")
 
-# --- MAIN DASHBOARD LOGIC ---
 if not df.empty:
     tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Trade History"])
 
