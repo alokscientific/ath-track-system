@@ -7,6 +7,18 @@ st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide
 
 st.markdown("""
     <style>
+    /* Card Outline & Shadow (Mobile Friendly) */
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        border: 2px solid #1E88E5 !important; /* Blue Border */
+        border-radius: 12px !important;
+        box-shadow: 0 4px 10px rgba(30, 136, 229, 0.15) !important; /* Halka sa blue glow */
+        padding: 5px;
+        transition: 0.3s;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+        box-shadow: 0 6px 15px rgba(30, 136, 229, 0.4) !important; /* Hover karne par glow badhega */
+    }
+
     .custom-btn {
         background-color: #1E88E5;
         color: white !important;
@@ -75,7 +87,6 @@ def load_data():
         st.error(f"Google Sheet se connect karne me dikkat aayi: {e}")
         return pd.DataFrame()
 
-# --- LIVE NEWS FETCHING FUNCTION ---
 @st.cache_data(ttl=600)
 def get_live_news(symbols_tuple):
     news_items = []
@@ -101,7 +112,6 @@ def safe_float(val):
 
 # --- HORIZONTAL RUNNING LIVE NEWS TICKER ---
 if not df.empty:
-    # Yahan magic fix hai: '.unique()' ke baad 'tuple()' laga diya taaki Streamlit khush rahe
     unique_symbols = tuple(df['symbol'].dropna().unique())
     news_list = get_live_news(unique_symbols)
     
