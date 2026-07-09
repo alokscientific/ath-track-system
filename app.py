@@ -83,6 +83,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- SIDEBAR (For PDF Download) ---
+with st.sidebar:
+    st.image("https://cdn-icons-png.flaticon.com/512/2916/2916281.png", width=80) # Ek sundar sa icon
+    st.header("📚 Learning Resource")
+    st.write("Understand the complete logic, entry, and exit rules of the All Time High Strategy.")
+    
+    try:
+        # PDF file ko read kar raha hai
+        with open("ATH_Trade_Guide.pdf", "rb") as pdf_file:
+            PDFbyte = pdf_file.read()
+        
+        # Download Button
+        st.download_button(
+            label="📥 Download ATH Trade Guide",
+            data=PDFbyte,
+            file_name="ATH_Trade_Guide.pdf",
+            mime='application/octet-stream',
+            help="Click here to download the PDF guide"
+        )
+    except FileNotFoundError:
+        st.warning("⚠️ Guide PDF is not available yet. (Upload 'ATH_Trade_Guide.pdf' to GitHub)")
+    
+    st.divider()
+    st.caption("Developed for Automated Execution Tracking.")
+
+# --- MAIN PAGE HEADER ---
 st.title("ATH Track system")
 st.markdown("**All Time High Tracking System** 🚀")
 st.info("Disclaimer: EDUCATIONAL PURPOSES ONLY. I am NOT a SEBI Registered Analyst.")
@@ -133,7 +159,6 @@ if not df.empty:
 def draw_cards(dataframe):
     cols = st.columns(4) 
     
-    # Har dataframe (Entered/Waiting) ka apna loop chalega
     for i, (index, row) in enumerate(dataframe.iterrows()):
         with cols[i % 4]:
             sym = str(row['symbol']).strip()
@@ -193,22 +218,19 @@ if not df.empty:
     with tab1:
         st.markdown("### Live & Ongoing Trades")
         
-        # Data ko 2 hisso me baant rahe hain
         entered_df = df[df['status'].str.contains("ENTERED", na=False)]
         waiting_df = df[df['status'].str.contains("WAITING", na=False)]
         
         if entered_df.empty and waiting_df.empty:
             st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
         else:
-            # 1. Pehle Entered stocks dikhayenge
             if not entered_df.empty:
                 st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>🟢 Active Positions (Entered)</h4>", unsafe_allow_html=True)
                 draw_cards(entered_df)
                 
             if not entered_df.empty and not waiting_df.empty:
-                st.divider() # Dono ke beech me ek patli line
+                st.divider()
                 
-            # 2. Fir Waiting stocks dikhayenge
             if not waiting_df.empty:
                 st.markdown("<h4 style='color: #FFC107; margin-top: 10px;'>🟡 Waiting for Breakout</h4>", unsafe_allow_html=True)
                 draw_cards(waiting_df)
