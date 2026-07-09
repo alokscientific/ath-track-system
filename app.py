@@ -167,7 +167,7 @@ def draw_cards(dataframe):
             below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
             
             if "WAITING" in status:
-                badge_class, display_status = "badge-waiting", "🟡 WAITING"
+                badge_class, display_status = "badge-waiting", "WAITING"
             elif "ENTERED" in status:
                 badge_class, display_status = "badge-entered", "ACTIVE"
             elif "SL" in status:
@@ -228,7 +228,7 @@ if not df.empty:
                 st.divider()
                 
             if not waiting_df.empty:
-                st.markdown("<h4 style='color: #FFC107; margin-top: 10px;'>🟡 Waiting for Breakout</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='color: #FFC107; margin-top: 10px;'>📤 Waiting for Breakout</h4>", unsafe_allow_html=True)
                 draw_cards(waiting_df)
 
     with tab2:
