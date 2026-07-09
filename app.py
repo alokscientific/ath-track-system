@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 
-# --- PAGE CONFIG & CUSTOM CSS ---
 st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide")
 
 st.markdown("""
@@ -20,15 +19,13 @@ st.markdown("""
     .pro-card:hover {
         border: 2px solid #40C4FF !important;
         box-shadow: 0 6px 18px rgba(64, 196, 255, 0.4);
-        transform: translateY(-3px); /* Hover par thoda upar uthega */
+        transform: translateY(-3px);
     }
-    
     .pro-card h4 {
         margin-top: 0px;
         margin-bottom: 5px;
         font-size: 1.2rem;
     }
-
     .custom-btn {
         background-color: #1E88E5;
         color: white !important;
@@ -60,7 +57,6 @@ st.markdown("""
     .badge-entered { background-color: #00E676; }
     .badge-sl { background-color: #FF5252; color: white !important; }
     .badge-tgt { background-color: #40C4FF; }
-    
     .ticker-container {
         width: 100%;
         background-color: #1E1E1E;
@@ -78,8 +74,6 @@ st.markdown("""
         font-weight: 500;
     }
     .ticker-link:hover { text-decoration: underline; }
-    
-    /* Divider for HTML cards */
     .card-divider {
         border: 0;
         height: 1px;
@@ -128,7 +122,6 @@ def safe_float(val):
     except:
         return 0.0
 
-# --- HORIZONTAL RUNNING LIVE NEWS TICKER ---
 if not df.empty:
     unique_symbols = tuple(df['symbol'].dropna().unique())
     news_list = get_live_news(unique_symbols)
@@ -137,7 +130,6 @@ if not df.empty:
         ticker_text = " &nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp; ".join(news_list)
         st.markdown(f"<div class='ticker-container'><marquee behavior='scroll' direction='left' scrollamount='5'>{ticker_text}</marquee></div>", unsafe_allow_html=True)
 
-# --- ADVANCED HTML CARDS FUNCTION ---
 def draw_cards(dataframe):
     cols = st.columns(4) 
     
@@ -171,36 +163,28 @@ def draw_cards(dataframe):
             chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
             screener = f"https://www.screener.in/company/{sym}/"
 
-            # Yeh Custom HTML Card Streamlit ke border ko hamesha override karega
-            card_html = f"""
-            <div class="pro-card">
-                <h4>{sym} <span class='badge {badge_class}'>{display_status}</span></h4>
-                <div style='color: #FFFFFF; font-size: 11px; margin-bottom: 12px; opacity: 0.7;'>{comp_name}</div>
-                
-                <a href="{chart}" target="_blank" class="custom-btn">📈 Chart</a>
-                <a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
-                
-                <hr class="card-divider">
-                
-                <p style="margin:0 0 6px 0; font-size: 14px;"><b>LTP:</b> ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span></p>
-            """
+            # 🚀 Magic Fix: Yahan se leading spaces (indentation) hata di hai taaki Code Block na bane
+            card_html = f"""<div class="pro-card">
+<h4>{sym} <span class='badge {badge_class}'>{display_status}</span></h4>
+<div style='color: #FFFFFF; font-size: 11px; margin-bottom: 12px; opacity: 0.7;'>{comp_name}</div>
+<a href="{chart}" target="_blank" class="custom-btn">📈 Chart</a>
+<a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
+<hr class="card-divider">
+<p style="margin:0 0 6px 0; font-size: 14px;"><b>LTP:</b> ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span></p>"""
 
             if "WAITING" in status:
-                card_html += f"""
-                <p style="margin:0 0 6px 0; font-size: 14px;"><b>ATH Level:</b> ₹{ath}</p>
-                <p style="margin:0 0 6px 0; font-size: 14px;"><b style='color:#FFB300;'>% Below ATH:</b> <b>{below_ath}%</b> down</p>
-                <div style="font-size: 12px; color: #aaa; margin-top: 12px;">🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}</div>
-                """
+                card_html += f"""<p style="margin:0 0 6px 0; font-size: 14px;"><b>ATH Level:</b> ₹{ath}</p>
+<p style="margin:0 0 6px 0; font-size: 14px;"><b style='color:#FFB300;'>% Below ATH:</b> <b>{below_ath}%</b> down</p>
+<div style="font-size: 12px; color: #aaa; margin-top: 12px;">🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}</div>"""
             else:
                 pnl = safe_float(row['pnl_perc'])
                 pnl_color = "#00E676" if pnl >= 0 else "#FF5252"
-                card_html += f"""
-                <p style="margin:0 0 6px 0; font-size: 14px;"><b>Current P&L:</b> <b style='color:{pnl_color};'>{pnl}%</b></p>
-                <p style="margin:0 0 6px 0; font-size: 14px;"><b>Target:</b> ₹{safe_float(row['target_price'])}</p>
-                <p style="margin:0; font-size: 14px;"><b>SL:</b> ₹{safe_float(row['sl_price'])}</p>
-                """
+                card_html += f"""<p style="margin:0 0 6px 0; font-size: 14px;"><b>Current P&L:</b> <b style='color:{pnl_color};'>{pnl}%</b></p>
+<p style="margin:0 0 6px 0; font-size: 14px;"><b>Target:</b> ₹{safe_float(row['target_price'])}</p>
+<p style="margin:0; font-size: 14px;"><b>SL:</b> ₹{safe_float(row['sl_price'])}</p>"""
 
             card_html += "</div>"
+            
             st.markdown(card_html, unsafe_allow_html=True)
 
 if not df.empty:
