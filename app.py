@@ -7,17 +7,26 @@ st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide
 
 st.markdown("""
     <style>
-    /* Super Ziddi Blue Outline for Cards */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        border: 3px solid #1E88E5 !important; /* Thick Blue Border */
-        border-radius: 12px !important;
-        box-shadow: 0px 5px 15px rgba(30, 136, 229, 0.3) !important; /* Blue glow shadow */
-        padding: 8px !important;
-        background-color: #121212 !important; /* Dark background to make blue pop */
+    /* Asali Blue Border Smart Card */
+    .pro-card {
+        border: 2px solid #1E88E5 !important;
+        border-radius: 12px;
+        padding: 16px;
+        background-color: #121212;
+        box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+        margin-bottom: 1rem;
     }
-    div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        border: 3px solid #40C4FF !important; /* Hover pe light blue */
-        box-shadow: 0px 8px 20px rgba(64, 196, 255, 0.5) !important;
+    .pro-card:hover {
+        border: 2px solid #40C4FF !important;
+        box-shadow: 0 6px 18px rgba(64, 196, 255, 0.4);
+        transform: translateY(-3px); /* Hover par thoda upar uthega */
+    }
+    
+    .pro-card h4 {
+        margin-top: 0px;
+        margin-bottom: 5px;
+        font-size: 1.2rem;
     }
 
     .custom-btn {
@@ -29,7 +38,7 @@ st.markdown("""
         display: inline-block;
         font-size: 13px;
         font-weight: 600;
-        margin: 4px 2px;
+        margin: 4px 4px 0 0;
         border-radius: 6px;
         border: 1px solid #1565C0;
         transition: 0.3s;
@@ -69,6 +78,14 @@ st.markdown("""
         font-weight: 500;
     }
     .ticker-link:hover { text-decoration: underline; }
+    
+    /* Divider for HTML cards */
+    .card-divider {
+        border: 0;
+        height: 1px;
+        background: #333;
+        margin: 15px 0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -120,63 +137,71 @@ if not df.empty:
         ticker_text = " &nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp; ".join(news_list)
         st.markdown(f"<div class='ticker-container'><marquee behavior='scroll' direction='left' scrollamount='5'>{ticker_text}</marquee></div>", unsafe_allow_html=True)
 
-# --- ADVANCED CARDS FUNCTION ---
+# --- ADVANCED HTML CARDS FUNCTION ---
 def draw_cards(dataframe):
     cols = st.columns(4) 
     
     for i, (index, row) in enumerate(dataframe.iterrows()):
         with cols[i % 4]:
-            with st.container(border=True):
-                sym = str(row['symbol']).strip()
-                comp_name = str(row['company_name']).strip()
-                status = str(row['status']).upper()
-                live_price = safe_float(row['live_price'])
-                ath = safe_float(row['ath'])
-                day_change_str = str(row['day_change'])
+            sym = str(row['symbol']).strip()
+            comp_name = str(row['company_name']).strip()
+            status = str(row['status']).upper()
+            live_price = safe_float(row['live_price'])
+            ath = safe_float(row['ath'])
+            day_change_str = str(row['day_change'])
+            
+            below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
+            
+            if "WAITING" in status:
+                badge_class, display_status = "badge-waiting", "🟡 WAITING"
+            elif "ENTERED" in status:
+                badge_class, display_status = "badge-entered", "🟢 ENTERED"
+            elif "SL" in status:
+                badge_class, display_status = "badge-sl", "🔴 SL HIT"
+            else:
+                badge_class, display_status = "badge-tgt", "🎯 TARGET HIT"
+            
+            if "-" in day_change_str:
+                change_color = "#FF5252"
+            elif "+" in day_change_str:
+                change_color = "#00E676"
+            else:
+                change_color = "#FFFFFF"
+            
+            chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
+            screener = f"https://www.screener.in/company/{sym}/"
+
+            # Yeh Custom HTML Card Streamlit ke border ko hamesha override karega
+            card_html = f"""
+            <div class="pro-card">
+                <h4>{sym} <span class='badge {badge_class}'>{display_status}</span></h4>
+                <div style='color: #FFFFFF; font-size: 11px; margin-bottom: 12px; opacity: 0.7;'>{comp_name}</div>
                 
-                below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
+                <a href="{chart}" target="_blank" class="custom-btn">📈 Chart</a>
+                <a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
                 
-                if "WAITING" in status:
-                    badge_class, display_status = "badge-waiting", "🟡 WAITING"
-                elif "ENTERED" in status:
-                    badge_class, display_status = "badge-entered", "🟢 ENTERED"
-                elif "SL" in status:
-                    badge_class, display_status = "badge-sl", "🔴 SL HIT"
-                else:
-                    badge_class, display_status = "badge-tgt", "🎯 TARGET HIT"
+                <hr class="card-divider">
                 
-                if "-" in day_change_str:
-                    change_color = "#FF5252"
-                elif "+" in day_change_str:
-                    change_color = "#00E676"
-                else:
-                    change_color = "#FFFFFF"
-                
-                st.markdown(f"#### {sym} <span class='badge {badge_class}'>{display_status}</span>", unsafe_allow_html=True)
-                st.markdown(f"<div style='color: #FFFFFF; font-size: 12px; margin-top: -12px; margin-bottom: 12px; opacity: 0.8;'>{comp_name}</div>", unsafe_allow_html=True)
-                
-                chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
-                screener = f"https://www.screener.in/company/{sym}/"
-                
-                st.markdown(f"""
-                    <a href="{chart}" target="_blank" class="custom-btn">📈 Chart</a>
-                    <a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
-                """, unsafe_allow_html=True)
-                
-                st.divider()
-                
-                st.markdown(f"**LTP:** ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span>", unsafe_allow_html=True)
-                
-                if "WAITING" in status:
-                    st.markdown(f"**ATH Level:** ₹{ath}")
-                    st.markdown(f"<b style='color:#FFB300;'>% Below ATH:</b> <b>{below_ath}%</b> down", unsafe_allow_html=True)
-                    st.caption(f"🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}")
-                else:
-                    pnl = safe_float(row['pnl_perc'])
-                    pnl_color = "#00E676" if pnl >= 0 else "#FF5252"
-                    st.markdown(f"**Current P&L:** <b style='color:{pnl_color};'>{pnl}%</b>", unsafe_allow_html=True)
-                    st.markdown(f"**Target:** ₹{safe_float(row['target_price'])}")
-                    st.markdown(f"**SL:** ₹{safe_float(row['sl_price'])}")
+                <p style="margin:0 0 6px 0; font-size: 14px;"><b>LTP:</b> ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span></p>
+            """
+
+            if "WAITING" in status:
+                card_html += f"""
+                <p style="margin:0 0 6px 0; font-size: 14px;"><b>ATH Level:</b> ₹{ath}</p>
+                <p style="margin:0 0 6px 0; font-size: 14px;"><b style='color:#FFB300;'>% Below ATH:</b> <b>{below_ath}%</b> down</p>
+                <div style="font-size: 12px; color: #aaa; margin-top: 12px;">🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}</div>
+                """
+            else:
+                pnl = safe_float(row['pnl_perc'])
+                pnl_color = "#00E676" if pnl >= 0 else "#FF5252"
+                card_html += f"""
+                <p style="margin:0 0 6px 0; font-size: 14px;"><b>Current P&L:</b> <b style='color:{pnl_color};'>{pnl}%</b></p>
+                <p style="margin:0 0 6px 0; font-size: 14px;"><b>Target:</b> ₹{safe_float(row['target_price'])}</p>
+                <p style="margin:0; font-size: 14px;"><b>SL:</b> ₹{safe_float(row['sl_price'])}</p>
+                """
+
+            card_html += "</div>"
+            st.markdown(card_html, unsafe_allow_html=True)
 
 if not df.empty:
     tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Trade History"])
