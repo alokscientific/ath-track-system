@@ -169,7 +169,7 @@ def draw_cards(dataframe):
             if "WAITING" in status:
                 badge_class, display_status = "badge-waiting", "🟡 WAITING"
             elif "ENTERED" in status:
-                badge_class, display_status = "badge-entered", "🟢 ENTERED"
+                badge_class, display_status = "badge-entered", "ACTIVE"
             elif "SL" in status:
                 badge_class, display_status = "badge-sl", "🔴 SL HIT"
             else:
@@ -221,7 +221,7 @@ if not df.empty:
             st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
         else:
             if not entered_df.empty:
-                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>🟢 Active Positions [Entered]</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>✅ Active Trade</h4>", unsafe_allow_html=True)
                 draw_cards(entered_df)
                 
             if not entered_df.empty and not waiting_df.empty:
