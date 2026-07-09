@@ -83,34 +83,30 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- SIDEBAR (For PDF Download) ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2916/2916281.png", width=80) # Ek sundar sa icon
-    st.header("📚 Learning Resource")
-    st.write("Understand the complete logic, entry, and exit rules of the All Time High Strategy.")
-    
+# --- HEADER & DOWNLOAD BUTTON IN ONE ROW ---
+head_col1, head_col2 = st.columns([0.85, 0.15]) # Screen ko 2 hisso me baant diya
+
+with head_col1:
+    st.title("ATH Track system")
+    st.markdown("**All Time High Tracking System** 🚀")
+
+with head_col2:
+    st.write("") # Button ko thoda niche align karne ke liye
+    st.write("")
     try:
-        # PDF file ko read kar raha hai
         with open("ATH_Trade_Guide.pdf", "rb") as pdf_file:
             PDFbyte = pdf_file.read()
         
-        # Download Button
         st.download_button(
-            label="📥 Download ATH Trade Guide",
+            label="📥 Download ATH Guide",
             data=PDFbyte,
             file_name="ATH_Trade_Guide.pdf",
             mime='application/octet-stream',
-            help="Click here to download the PDF guide"
+            use_container_width=True # Button apne column me fit baithega
         )
     except FileNotFoundError:
-        st.warning("⚠️ Guide PDF is not available yet. (Upload 'ATH_Trade_Guide.pdf' to GitHub)")
-    
-    st.divider()
-    st.caption("Developed for Automated Execution Tracking.")
+        st.caption("⚠️ PDF not uploaded yet")
 
-# --- MAIN PAGE HEADER ---
-st.title("ATH Track system")
-st.markdown("**All Time High Tracking System** 🚀")
 st.info("Disclaimer: EDUCATIONAL PURPOSES ONLY. I am NOT a SEBI Registered Analyst.")
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1qKxpIIoGd4skNllbua6U0AeeFt-WQjeYPMvBzS5_Qn4/export?format=csv"
