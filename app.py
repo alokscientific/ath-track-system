@@ -84,7 +84,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("ATH Track system")
-st.markdown("**Automated Execution Tracking System** 🚀")
+st.markdown("**All Time High Tracking System** 🚀")
 st.info("Disclaimer: EDUCATIONAL PURPOSES ONLY. I am NOT a SEBI Registered Analyst.")
 
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1qKxpIIoGd4skNllbua6U0AeeFt-WQjeYPMvBzS5_Qn4/export?format=csv"
@@ -133,6 +133,7 @@ if not df.empty:
 def draw_cards(dataframe):
     cols = st.columns(4) 
     
+    # Har dataframe (Entered/Waiting) ka apna loop chalega
     for i, (index, row) in enumerate(dataframe.iterrows()):
         with cols[i % 4]:
             sym = str(row['symbol']).strip()
@@ -163,7 +164,6 @@ def draw_cards(dataframe):
             chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
             screener = f"https://www.screener.in/company/{sym}/"
 
-            # 🚀 Magic Fix: Yahan se leading spaces (indentation) hata di hai taaki Code Block na bane
             card_html = f"""<div class="pro-card">
 <h4>{sym} <span class='badge {badge_class}'>{display_status}</span></h4>
 <div style='color: #FFFFFF; font-size: 11px; margin-bottom: 12px; opacity: 0.7;'>{comp_name}</div>
@@ -192,11 +192,26 @@ if not df.empty:
 
     with tab1:
         st.markdown("### Live & Ongoing Trades")
-        active_df = df[df['status'].isin(["🟡 WAITING", "🟢 ENTERED"])]
-        if active_df.empty:
+        
+        # Data ko 2 hisso me baant rahe hain
+        entered_df = df[df['status'].str.contains("ENTERED", na=False)]
+        waiting_df = df[df['status'].str.contains("WAITING", na=False)]
+        
+        if entered_df.empty and waiting_df.empty:
             st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
         else:
-            draw_cards(active_df)
+            # 1. Pehle Entered stocks dikhayenge
+            if not entered_df.empty:
+                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>🟢 Active Positions (Entered)</h4>", unsafe_allow_html=True)
+                draw_cards(entered_df)
+                
+            if not entered_df.empty and not waiting_df.empty:
+                st.divider() # Dono ke beech me ek patli line
+                
+            # 2. Fir Waiting stocks dikhayenge
+            if not waiting_df.empty:
+                st.markdown("<h4 style='color: #FFC107; margin-top: 10px;'>🟡 Waiting for Breakout</h4>", unsafe_allow_html=True)
+                draw_cards(waiting_df)
 
     with tab2:
         st.markdown("### Closed Trades History")
