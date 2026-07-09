@@ -7,16 +7,17 @@ st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide
 
 st.markdown("""
     <style>
-    /* Card Outline & Shadow (Mobile Friendly) */
+    /* Super Ziddi Blue Outline for Cards */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        border: 2px solid #1E88E5 !important; /* Blue Border */
+        border: 3px solid #1E88E5 !important; /* Thick Blue Border */
         border-radius: 12px !important;
-        box-shadow: 0 4px 10px rgba(30, 136, 229, 0.15) !important; /* Halka sa blue glow */
-        padding: 5px;
-        transition: 0.3s;
+        box-shadow: 0px 5px 15px rgba(30, 136, 229, 0.3) !important; /* Blue glow shadow */
+        padding: 8px !important;
+        background-color: #121212 !important; /* Dark background to make blue pop */
     }
     div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-        box-shadow: 0 6px 15px rgba(30, 136, 229, 0.4) !important; /* Hover karne par glow badhega */
+        border: 3px solid #40C4FF !important; /* Hover pe light blue */
+        box-shadow: 0px 8px 20px rgba(64, 196, 255, 0.5) !important;
     }
 
     .custom-btn {
