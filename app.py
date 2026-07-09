@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-# Page layout ko wide rakha h taaki cards acche dikhein
 st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide")
 st.title("ATH Track system")
 st.write("**Automated Execution Tracking System**")
@@ -27,66 +26,45 @@ def safe_float(val):
     except:
         return 0.0
 
-# --- CARDS DRAW KARNE KA FUNCTION ---
 def draw_cards(dataframe):
-    # Screen ko 3 hisso me baant rahe hain taaki grid ban sake
-    cols = st.columns(3)
+    # 4 columns taaki Cards chhote banein aur scrolling kam ho
+    cols = st.columns(4) 
     
     for i, (index, row) in enumerate(dataframe.iterrows()):
-        with cols[i % 3]: # Har 3 card ke baad nayi line me aayega
-            with st.container(border=True): # Yeh Card ka border banayega
-                
-                # 1. Title & Company Name
-                st.subheader(f"{row['symbol']}")
-                st.caption(f"{row['company_name']}")
-                
+        with cols[i % 4]:
+            with st.container(border=True):
+                sym = str(row['symbol']).strip()
                 status = str(row['status'])
                 live_price = safe_float(row['live_price'])
-                day_change = str(row['day_change'])
-                if day_change == "nan" or day_change == "None": 
-                    day_change = "0%"
-
-                # 2. Status Badge Colors
-                if "🟢" in status:
-                    st.success(f"**{status}**")
-                elif "🔴" in status:
-                    st.error(f"**{status}**")
-                elif "🎯" in status:
-                    st.info(f"**{status}**")
-                else:
-                    st.warning(f"**{status}**")
+                ath = safe_float(row['ath'])
                 
-                # 3. Live Price & PnL Metrics
-                mc1, mc2 = st.columns(2)
-                mc1.metric("Live Price", f"₹{live_price}", day_change)
+                # Calculate % Below ATH
+                below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
+                
+                # Status Icon Logic
+                icon = "🟢" if "ENTERED" in status else "🔴" if "SL" in status else "🎯" if "TARGET" in status else "🟡"
+                
+                # Compact Header
+                st.markdown(f"#### {sym} {icon}")
+                
+                # Smart Links (TradingView, Screener, Google News)
+                chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
+                screener = f"https://www.screener.in/company/{sym}/"
+                news = f"https://www.google.com/search?q={sym}+share+news"
+                
+                st.markdown(f"<small>[📈 Chart]({chart}) | [📊 Data]({screener}) | [📰 News]({news})</small>", unsafe_allow_html=True)
+                
+                # Compact Metrics
+                st.markdown(f"**LTP:** ₹{live_price} ({row['day_change']})")
                 
                 if "WAITING" in status:
-                    mc2.metric("ATH Level", f"₹{safe_float(row['ath'])}")
+                    st.markdown(f"**ATH:** ₹{ath} (`-{below_ath}%`)")
+                    st.caption(f"Breakout: ₹{round(ath * 1.01, 2)}")
                 else:
                     pnl = safe_float(row['pnl_perc'])
-                    # PnL ko color me dikhane ke liye delta ka use kiya h
-                    mc2.metric("P&L %", f"{pnl}%", f"{pnl}%")
-                
-                st.divider() # Line separator
-                
-                # 4. Entry, SL, Target Details
-                if "WAITING" not in status:
-                    entry = safe_float(row['entry_price'])
-                    tgt = safe_float(row['target_price'])
-                    sl = safe_float(row['sl_price'])
-                    
-                    st.markdown(f"**Entry:** ₹{entry} | **Target:** ₹{tgt} | **SL:** ₹{sl}")
-                    
-                    if "ENTERED" in status:
-                        st.caption(f"Entry Date: {row['entry_date']}")
-                    else:
-                        st.caption(f"Exit Date: {row['exit_date']}")
-                else:
-                    breakout_lvl = round(safe_float(row['ath']) * 1.01, 2)
-                    st.markdown(f"**Breakout Level:** ₹{breakout_lvl}")
-                    st.caption("Waiting for price to cross ATH...")
+                    st.markdown(f"**P&L:** `{pnl}%`")
+                    st.caption(f"Tgt: ₹{safe_float(row['target_price'])} | SL: ₹{safe_float(row['sl_price'])}")
 
-# --- MAIN DASHBOARD LOGIC ---
 if not df.empty:
     tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Trade History"])
 
@@ -96,7 +74,7 @@ if not df.empty:
         if active_df.empty:
             st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
         else:
-            draw_cards(active_df) # Table ki jagah Cards call kar rahe hain
+            draw_cards(active_df)
 
     with tab2:
         st.markdown("### Closed Trades History")
@@ -104,6 +82,6 @@ if not df.empty:
         if history_df.empty:
             st.info("Abhi tak koi bhi trade close nahi hui hai.")
         else:
-            draw_cards(history_df) # Yahan bhi Cards dikhenge
+            draw_cards(history_df)
 else:
     st.warning("⚠️ Google Sheet ekdum khali hai ya URL block ho raha hai.")
