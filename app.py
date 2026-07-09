@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
+import yfinance as yf
 
 # --- PAGE CONFIG & CUSTOM CSS ---
 st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide")
 
-# Custom CSS for Buttons, Badges, and Ticker
 st.markdown("""
     <style>
     .custom-btn {
@@ -43,17 +43,17 @@ st.markdown("""
         width: 100%;
         background-color: #1E1E1E;
         color: white;
-        padding: 8px;
+        padding: 10px;
         border-radius: 8px;
         border: 1px solid #444;
         margin-bottom: 25px;
-        font-size: 14px;
+        font-size: 15px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.3);
     }
     .ticker-link {
-        color: #40C4FF !important;
+        color: #FFD700 !important; /* Gold color for news headlines */
         text-decoration: none;
-        font-weight: bold;
+        font-weight: 500;
     }
     .ticker-link:hover { text-decoration: underline; }
     </style>
@@ -75,6 +75,22 @@ def load_data():
         st.error(f"Google Sheet se connect karne me dikkat aayi: {e}")
         return pd.DataFrame()
 
+# --- LIVE NEWS FETCHING FUNCTION ---
+@st.cache_data(ttl=600) # 10 minute tak news cache rakhega taaki app slow na ho
+def get_live_news(symbols):
+    news_items = []
+    for sym in symbols:
+        try:
+            ticker = yf.Ticker(f"{sym}.NS")
+            news = ticker.news
+            if news and len(news) > 0:
+                headline = news[0]['title']
+                link = news[0]['link']
+                news_items.append(f"📰 <b>{sym}</b>: <a class='ticker-link' href='{link}' target='_blank'>{headline}</a>")
+        except Exception:
+            pass # Agar news na mile toh skip kardo
+    return news_items
+
 df = load_data()
 
 def safe_float(val):
@@ -83,17 +99,14 @@ def safe_float(val):
     except:
         return 0.0
 
-# --- HORIZONTAL RUNNING NEWS TICKER ---
+# --- HORIZONTAL RUNNING LIVE NEWS TICKER ---
 if not df.empty:
     unique_symbols = df['symbol'].dropna().unique()
-    news_items = []
-    for sym in unique_symbols:
-        news_link = f"https://www.google.com/search?q={sym}+share+latest+news+today"
-        news_items.append(f"📰 <b>{sym}</b>: <a class='ticker-link' href='{news_link}' target='_blank'>Latest News</a>")
+    news_list = get_live_news(unique_symbols)
     
-    ticker_text = " &nbsp;&nbsp; | &nbsp;&nbsp; ".join(news_items)
-    # Marquee tag se news scroll hogi
-    st.markdown(f"<div class='ticker-container'><marquee behavior='scroll' direction='left' scrollamount='5'>{ticker_text}</marquee></div>", unsafe_allow_html=True)
+    if news_list:
+        ticker_text = " &nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp; ".join(news_list)
+        st.markdown(f"<div class='ticker-container'><marquee behavior='scroll' direction='left' scrollamount='5'>{ticker_text}</marquee></div>", unsafe_allow_html=True)
 
 # --- ADVANCED CARDS FUNCTION ---
 def draw_cards(dataframe):
@@ -103,13 +116,16 @@ def draw_cards(dataframe):
         with cols[i % 4]:
             with st.container(border=True):
                 sym = str(row['symbol']).strip()
+                comp_name = str(row['company_name']).strip()
                 status = str(row['status']).upper()
                 live_price = safe_float(row['live_price'])
                 ath = safe_float(row['ath'])
+                day_change_str = str(row['day_change'])
                 
+                # % Below ATH Logic
                 below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
                 
-                # Assigning Badge Color
+                # Badge & Icon Logic
                 if "WAITING" in status:
                     badge_class, display_status = "badge-waiting", "🟡 WAITING"
                 elif "ENTERED" in status:
@@ -119,8 +135,17 @@ def draw_cards(dataframe):
                 else:
                     badge_class, display_status = "badge-tgt", "🎯 TARGET HIT"
                 
-                # 1. Card Header & Badge
+                # Day Change Color Logic
+                if "-" in day_change_str:
+                    change_color = "#FF5252" # Red
+                elif "+" in day_change_str:
+                    change_color = "#00E676" # Green
+                else:
+                    change_color = "#FFFFFF" # White
+                
+                # 1. Card Header, Badge & Company Name (White)
                 st.markdown(f"#### {sym} <span class='badge {badge_class}'>{display_status}</span>", unsafe_allow_html=True)
+                st.markdown(f"<div style='color: #FFFFFF; font-size: 12px; margin-top: -12px; margin-bottom: 12px; opacity: 0.8;'>{comp_name}</div>", unsafe_allow_html=True)
                 
                 # 2. Beautiful Buttons (Chart & Data)
                 chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
@@ -131,10 +156,10 @@ def draw_cards(dataframe):
                     <a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
                 """, unsafe_allow_html=True)
                 
-                st.divider() # Line separator
+                st.divider()
                 
-                # 3. Clean & Explicit Metrics
-                st.markdown(f"**LTP:** ₹{live_price}  *( {row['day_change']} )*")
+                # 3. Clean & Explicit Metrics (Colored LTP Change)
+                st.markdown(f"**LTP:** ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span>", unsafe_allow_html=True)
                 
                 if "WAITING" in status:
                     st.markdown(f"**ATH Level:** ₹{ath}")
@@ -142,7 +167,7 @@ def draw_cards(dataframe):
                     st.caption(f"🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}")
                 else:
                     pnl = safe_float(row['pnl_perc'])
-                    pnl_color = "#00E676" if pnl >= 0 else "#FF5252" # Green if profit, Red if loss
+                    pnl_color = "#00E676" if pnl >= 0 else "#FF5252"
                     st.markdown(f"**Current P&L:** <b style='color:{pnl_color};'>{pnl}%</b>", unsafe_allow_html=True)
                     st.markdown(f"**Target:** ₹{safe_float(row['target_price'])}")
                     st.markdown(f"**SL:** ₹{safe_float(row['sl_price'])}")
