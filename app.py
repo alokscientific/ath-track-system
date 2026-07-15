@@ -1,242 +1,99 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
 
-st.set_page_config(page_title="ATH Track System", page_icon="📈", layout="wide")
+# Page layout aur config set kar rahe hain
+st.set_page_config(page_title="LBA ALGO Track System", page_icon="📈", layout="wide")
 
-st.markdown("""
-    <style>
-    /* Asali Blue Border Smart Card */
-    .pro-card {
-        border: 2px solid #1E88E5 !important;
-        border-radius: 12px;
-        padding: 16px;
-        background-color: #121212;
-        box-shadow: 0 4px 12px rgba(30, 136, 229, 0.2);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
-        margin-bottom: 1rem;
-    }
-    .pro-card:hover {
-        border: 2px solid #40C4FF !important;
-        box-shadow: 0 6px 18px rgba(64, 196, 255, 0.4);
-        transform: translateY(-3px);
-    }
-    .pro-card h4 {
-        margin-top: 0px;
-        margin-bottom: 5px;
-        font-size: 1.2rem;
-    }
-    .custom-btn {
-        background-color: #1E88E5;
-        color: white !important;
-        padding: 5px 12px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 13px;
-        font-weight: 600;
-        margin: 4px 4px 0 0;
-        border-radius: 6px;
-        border: 1px solid #1565C0;
-        transition: 0.3s;
-    }
-    .custom-btn:hover {
-        background-color: #1565C0;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-    }
-    .badge {
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 900;
-        color: black !important;
-        float: right;
-        margin-top: 2px;
-    }
-    .badge-waiting { background-color: #FFC107; }
-    .badge-entered { background-color: #00E676; }
-    .badge-sl { background-color: #FF5252; color: white !important; }
-    .badge-tgt { background-color: #40C4FF; }
-    .ticker-container {
-        width: 100%;
-        background-color: #1E1E1E;
-        color: white;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #444;
-        margin-bottom: 25px;
-        font-size: 15px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    }
-    .ticker-link {
-        color: #FFD700 !important;
-        text-decoration: none;
-        font-weight: 500;
-    }
-    .ticker-link:hover { text-decoration: underline; }
-    .card-divider {
-        border: 0;
-        height: 1px;
-        background: #333;
-        margin: 15px 0;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Dashboard ka Title aur Subtitle
+st.title("LBA ALGO Track System")
+st.write("**Automated Execution & Faceless Trading Dashboard**")
 
-# --- HEADER & DOWNLOAD BUTTON IN ONE ROW ---
-head_col1, head_col2 = st.columns([0.85, 0.15]) # Screen ko 2 hisso me baant diya
+# SEBI Disclaimer Box
+st.info("Disclaimer: EDUCATIONAL PURPOSES ONLY. I am NOT a SEBI Registered Analyst. This dashboard strictly tracks personal algorithmic logic. Do not consider this as buy/sell advice.")
 
-with head_col1:
-    st.title("ATH Track system")
-    st.markdown("**All Time High Tracking System** 📈 ")
+# Aapki Google Sheet ka Live CSV Export URL (ID aur GID ke sath)
+SHEET_ID = "1rsrmQMe8hbjGfsAx7039oMPdmqwWC5hHCpEFQSlVH9o"
+GID = "1424037063"
+SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 
-with head_col2:
-    st.write("") # Button ko thoda niche align karne ke liye
-    st.write("")
-    try:
-        with open("ATH_Trade_Guide.pdf", "rb") as pdf_file:
-            PDFbyte = pdf_file.read()
-        
-        st.download_button(
-            label="📥 Download ATH Guide",
-            data=PDFbyte,
-            file_name="ATH_Trade_Guide.pdf",
-            mime='application/octet-stream',
-            use_container_width=True # Button apne column me fit baithega
-        )
-    except FileNotFoundError:
-        st.caption("⚠️ PDF not uploaded yet")
-
-st.info("We are not SEBI Registered Advisors. This website is purely for training and educational purposes.")
-
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1qKxpIIoGd4skNllbua6U0AeeFt-WQjeYPMvBzS5_Qn4/export?format=csv"
-
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=30)  # Har 30 second me data auto-refresh hoga
 def load_data():
     try:
-        df = pd.read_csv(SHEET_CSV_URL)
-        df.columns = ["symbol", "company_name", "ath", "live_price", "day_change", "status", "entry_price", "sl_price", "target_price", "pnl_perc", "entry_date", "exit_date"]
-        return df
+        data = pd.read_csv(SHEET_CSV_URL)
+        data.columns = [str(c).strip() for c in data.columns]
+        # Khali rows ko hata denge
+        data = data.dropna(subset=['Stock Symbol'])
+        return data
     except Exception as e:
         st.error(f"Google Sheet se connect karne me dikkat aayi: {e}")
         return pd.DataFrame()
 
-@st.cache_data(ttl=600)
-def get_live_news(symbols_tuple):
-    news_items = []
-    for sym in symbols_tuple:
-        try:
-            ticker = yf.Ticker(f"{sym}.NS")
-            news = ticker.news
-            if news and len(news) > 0:
-                headline = news[0]['title']
-                link = news[0]['link']
-                news_items.append(f"📰 <b>{sym}</b>: <a class='ticker-link' href='{link}' target='_blank'>{headline}</a>")
-        except Exception:
-            pass
-    return news_items
-
 df = load_data()
 
-def safe_float(val):
+def format_pct(val):
     try:
-        return float(val)
+        if pd.isna(val): return "0.00%"
+        if isinstance(val, str) and '%' in val: return val
+        return f"{float(val)*100:.2f}%"
     except:
-        return 0.0
+        return "0.00%"
+
+# --- CARD BANANE KA FUNCTION ---
+def draw_card(row):
+    with st.container(border=True):
+        raw_symbol = str(row['Stock Symbol']).strip()
+        clean_symbol = raw_symbol.split(':')[-1] if ':' in raw_symbol else raw_symbol
+        company_name = str(row.get('Company Name', '--'))
+
+        st.markdown(f"#### 🏷️ {raw_symbol}")
+        st.caption(f"{company_name}")
+        st.divider() 
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric(label="Entry Price", value=f"₹{row.get('Entry Price', 0)}")
+        with c2:
+            st.metric(label="Live Price", value=f"₹{row.get('Live Price', 0)}")
+        with c3:
+            pnl_val = format_pct(row.get('Live P&L %', 0))
+            st.metric(label="Live P&L", value=pnl_val)
+
+        status = str(row.get('Status', 'IN TRADE'))
+        if status == "TARGET HIT":
+            st.success("🎯 TARGET HIT")
+        elif status == "SL HIT":
+            st.error("🔴 SL HIT")
+        else:
+            st.info("🟡 IN TRADE")
+
+        st.divider()
+        screener_url = f"https://www.screener.in/company/{clean_symbol}/"
+        tv_url = f"https://in.tradingview.com/chart/?symbol={raw_symbol}"
+        st.markdown(f"[📊 Screener Data]({screener_url}) &nbsp; | &nbsp; [📈 TradingView Chart]({tv_url})")
+
 
 if not df.empty:
-    unique_symbols = tuple(df['symbol'].dropna().unique())
-    news_list = get_live_news(unique_symbols)
-    
-    if news_list:
-        ticker_text = " &nbsp;&nbsp;&nbsp; 🔴 &nbsp;&nbsp;&nbsp; ".join(news_list)
-        st.markdown(f"<div class='ticker-container'><marquee behavior='scroll' direction='left' scrollamount='5'>{ticker_text}</marquee></div>", unsafe_allow_html=True)
-
-def draw_cards(dataframe):
-    cols = st.columns(4) 
-    
-    for i, (index, row) in enumerate(dataframe.iterrows()):
-        with cols[i % 4]:
-            sym = str(row['symbol']).strip()
-            comp_name = str(row['company_name']).strip()
-            status = str(row['status']).upper()
-            live_price = safe_float(row['live_price'])
-            ath = safe_float(row['ath'])
-            day_change_str = str(row['day_change'])
-            
-            below_ath = round(((ath - live_price) / ath) * 100, 2) if ath > 0 else 0
-            
-            if "WAITING" in status:
-                badge_class, display_status = "badge-waiting", "WAITING"
-            elif "ENTERED" in status:
-                badge_class, display_status = "badge-entered", "ACTIVE"
-            elif "SL" in status:
-                badge_class, display_status = "badge-sl", "🔴 SL HIT"
-            else:
-                badge_class, display_status = "badge-tgt", "🎯 TARGET HIT"
-            
-            if "-" in day_change_str:
-                change_color = "#FF5252"
-            elif "+" in day_change_str:
-                change_color = "#00E676"
-            else:
-                change_color = "#FFFFFF"
-            
-            chart = f"https://in.tradingview.com/chart/?symbol=NSE:{sym}"
-            screener = f"https://www.screener.in/company/{sym}/"
-
-            card_html = f"""<div class="pro-card">
-<h4>{sym} <span class='badge {badge_class}'>{display_status}</span></h4>
-<div style='color: #FFFFFF; font-size: 11px; margin-bottom: 12px; opacity: 0.7;'>{comp_name}</div>
-<a href="{chart}" target="_blank" class="custom-btn">📈 Chart</a>
-<a href="{screener}" target="_blank" class="custom-btn">📊 Data</a>
-<hr class="card-divider">
-<p style="margin:0 0 6px 0; font-size: 14px;"><b>LTP:</b> ₹{live_price} <span style='color:{change_color}; font-weight:bold;'>({day_change_str})</span></p>"""
-
-            if "WAITING" in status:
-                card_html += f"""<p style="margin:0 0 6px 0; font-size: 14px;"><b>ATH Level:</b> ₹{ath}</p>
-<p style="margin:0 0 6px 0; font-size: 14px;"><b style='color:#FFB300;'>% Below ATH:</b> <b>{below_ath}%</b> down</p>
-<div style="font-size: 12px; color: #aaa; margin-top: 12px;">🚀 Breakout Trigger: ₹{round(ath * 1.01, 2)}</div>"""
-            else:
-                pnl = safe_float(row['pnl_perc'])
-                pnl_color = "#00E676" if pnl >= 0 else "#FF5252"
-                card_html += f"""<p style="margin:0 0 6px 0; font-size: 14px;"><b>Current P&L:</b> <b style='color:{pnl_color};'>{pnl}%</b></p>
-<p style="margin:0 0 6px 0; font-size: 14px;"><b>Target:</b> ₹{safe_float(row['target_price'])}</p>
-<p style="margin:0; font-size: 14px;"><b>SL:</b> ₹{safe_float(row['sl_price'])}</p>"""
-
-            card_html += "</div>"
-            
-            st.markdown(card_html, unsafe_allow_html=True)
-
-if not df.empty:
-    tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Trade History"])
+    tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Closed Trades History"])
 
     with tab1:
-        st.markdown("### Live scan and Trades")
-        
-        entered_df = df[df['status'].str.contains("ENTERED", na=False)]
-        waiting_df = df[df['status'].str.contains("WAITING", na=False)]
-        
-        if entered_df.empty and waiting_df.empty:
-            st.info("Abhi koi active trade ya waiting list me stock nahi hai.")
+        active_df = df[df['Status'].isin(["IN TRADE", "WAITING"])]
+        if active_df.empty:
+            st.info("Abhi koi active trade nahi hai.")
         else:
-            if not entered_df.empty:
-                st.markdown("<h4 style='color: #00E676; margin-top: 15px;'>✅ Active Trade</h4>", unsafe_allow_html=True)
-                draw_cards(entered_df)
-                
-            if not entered_df.empty and not waiting_df.empty:
-                st.divider()
-                
-            if not waiting_df.empty:
-                st.markdown("<h4 style='color: #FFC107; margin-top: 10px;'>📤 Waiting for Breakout</h4>", unsafe_allow_html=True)
-                draw_cards(waiting_df)
+            cols = st.columns(3)
+            for index, row in active_df.iterrows():
+                with cols[index % 3]:
+                    draw_card(row)
 
     with tab2:
-        st.markdown("### Closed Trades History")
-        history_df = df[df['status'].isin(["🔴 SL HIT", "🎯 TARGET HIT"])]
+        history_df = df[df['Status'].isin(["SL HIT", "TARGET HIT"])]
         if history_df.empty:
             st.info("Abhi tak koi bhi trade close nahi hui hai.")
         else:
-            draw_cards(history_df)
+            cols = st.columns(3)
+            history_df = history_df.reset_index(drop=True)
+            for index, row in history_df.iterrows():
+                with cols[index % 3]:
+                    draw_card(row)
 else:
     st.warning("⚠️ Google Sheet ekdum khali hai ya URL block ho raha hai.")
