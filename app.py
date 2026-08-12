@@ -16,6 +16,10 @@ SHEET_ID = "1rsrmQMe8hbjGfsAx7039oMPdmqwWC5hHCpEFQSlVH9o"
 GID = "1424037063"
 SHEET_CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 
+# --- INVESTMENT CONSTANTS ---
+TOTAL_PORTFOLIO_CAPITAL = 1000000  # 10 Lakh base capital
+INVESTMENT_PER_TRADE = 100000      # 1 Lakh per trade
+
 @st.cache_data(ttl=30)  # Har 30 second me data auto-refresh hoga
 def load_data():
     try:
@@ -32,11 +36,18 @@ df = load_data()
 
 def format_pct(val):
     try:
-        if pd.isna(val): return "0.00%"
+        if pd.isna(val) or str(val).strip() in ["", "#VALUE!"]: return "0.00%"
         if isinstance(val, str) and '%' in val: return val
         return f"{float(val)*100:.2f}%"
     except:
         return "0.00%"
+
+def safe_float(val):
+    try:
+        if pd.isna(val) or str(val).strip() in ["", "#VALUE!"]: return 0.0
+        return float(str(val).replace('%', '').replace(',', ''))
+    except:
+        return 0.0
 
 # --- CARD BANANE KA FUNCTION ---
 def draw_card(row):
@@ -53,16 +64,26 @@ def draw_card(row):
         with c1:
             st.metric(label="Entry Price", value=f"₹{row.get('Entry Price', 0)}")
         with c2:
-            st.metric(label="Live Price", value=f"₹{row.get('Live Price', 0)}")
+            # Handle Blank/Error cells safely
+            live_p = row.get('Live Price', 0)
+            if pd.isna(live_p) or str(live_p).strip() in ["", "#VALUE!"]:
+                live_p = "--"
+            st.metric(label="Live Price", value=f"₹{live_p}")
         with c3:
             pnl_val = format_pct(row.get('Live P&L %', 0))
             st.metric(label="Live P&L", value=pnl_val)
 
-        status = str(row.get('Status', 'IN TRADE'))
+        status = str(row.get('Status', 'IN TRADE')).strip().upper()
         if status == "TARGET HIT":
             st.success("🎯 TARGET HIT")
         elif status == "SL HIT":
             st.error("🔴 SL HIT")
+        elif status == "TRAIL EXIT":
+            st.warning("🛡️ TRAIL EXIT")
+        elif status == "REPLACED":
+            st.secondary("🔄 REPLACED")
+        elif status == "WAITING":
+            st.info("⏳ WAITING")
         else:
             st.info("🟡 IN TRADE")
 
@@ -73,6 +94,36 @@ def draw_card(row):
 
 
 if not df.empty:
+    
+    # --- 10 LAKH PORTFOLIO P&L CALCULATION (FIXED HISTORY) ---
+    closed_trades = df[df['Status'].isin(["SL HIT", "TARGET HIT", "TRAIL EXIT", "REPLACED"])]
+    total_realized_pnl = 0.0
+    
+    for _, row in closed_trades.iterrows():
+        entry = safe_float(row.get('Entry Price', 0))
+        status = str(row.get('Status', '')).strip().upper()
+        
+        # Exact calculation using fixed exit levels (Live price ignore karega)
+        exit_p = 0.0
+        if status == "TARGET HIT": exit_p = safe_float(row.get('Target Price', 0))
+        elif status == "SL HIT": exit_p = safe_float(row.get('SL Level', 0))
+        elif status == "TRAIL EXIT": exit_p = safe_float(row.get('Trailed SL', 0))
+        
+        if exit_p == 0: exit_p = safe_float(row.get('Live Price', 0))
+        
+        if entry > 0 and exit_p > 0:
+            pct_gain = (exit_p - entry) / entry
+            pnl_rs = pct_gain * INVESTMENT_PER_TRADE
+            total_realized_pnl += pnl_rs
+
+    portfolio_pct = (total_realized_pnl / TOTAL_PORTFOLIO_CAPITAL) * 100
+    
+    # Simple Portfolio Header
+    st.subheader("💼 Portfolio Snapshot (₹10 Lakh Capital)")
+    pnl_color = "green" if total_realized_pnl >= 0 else "red"
+    st.markdown(f"**Total Realized P&L:** :{pnl_color}[₹{total_realized_pnl:,.2f} ({portfolio_pct:+.2f}%)]")
+    st.divider()
+
     tab1, tab2 = st.tabs(["📊 Active Trades", "📜 Closed Trades History"])
 
     with tab1:
@@ -81,12 +132,13 @@ if not df.empty:
             st.info("Abhi koi active trade nahi hai.")
         else:
             cols = st.columns(3)
+            active_df = active_df.reset_index(drop=True)
             for index, row in active_df.iterrows():
                 with cols[index % 3]:
                     draw_card(row)
 
     with tab2:
-        history_df = df[df['Status'].isin(["SL HIT", "TARGET HIT"])]
+        history_df = closed_trades
         if history_df.empty:
             st.info("Abhi tak koi bhi trade close nahi hui hai.")
         else:
